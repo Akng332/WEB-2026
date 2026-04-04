@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - Мой Блог{% endblock %}
+
+{% block content %}
+<article class="post-full">
+    <h1 class="post-title">{{ post.title }}</h1>
+
+    <div class="post-meta">
+        <span class="post-author">Автор: {{ post.author }}</span>
+        <span class="post-date">Дата публикации: {{ post.date.strftime('%d.%m.%Y %H:%M') }}</span>
+    </div>
+
+    {% if post.image %}
+    <div class="post-image">
+        <img src="{{ url_for('static', filename='images/' + post.image) }}" alt="{{ post.title }}">
+    </div>
+    {% endif %}
+
+    <div class="post-content">
+        <p>{{ post.content }}</p>
+    </div>
+
+    <!-- Форма для комментариев -->
+    <div class="comment-form-section">
+        <h3>Оставьте комментарий</h3>
+        <form method="POST" action="{{ url_for('post_detail', post_id=post.id) }}" class="comment-form">
+            <div class="form-group">
+                <label for="comment_text">Ваш комментарий:</label>
+                <textarea id="comment_text" name="comment_text" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn-submit">Отправить</button>
+        </form>
+    </div>
+
+    <!-- Комментарии -->
+    <div class="comments-section">
+        <h3>Комментарии ({{ post.comments|length }})</h3>
+
+        {% for comment in post.comments %}
+        <div class="comment" id="comment-{{ comment.id }}">
+            <div class="comment-header">
+                <strong class="comment-author">{{ comment.author }}</strong>
+                <span class="comment-date">{{ comment.date.strftime('%d.%m.%Y %H:%M') }}</span>
+            </div>
+            <div class="comment-text">
+                {{ comment.text }}
+            </div>
+
+            <!-- Кнопка ответа -->
+            <button class="btn-reply" onclick="showReplyForm({{ comment.id }})">Ответить</button>
+
+            <!-- Форма ответа (скрыта по умолчанию) -->
+            <div id="reply-form-{{ comment.id }}" class="reply-form" style="display: none;">
+                <form method="POST" action="{{ url_for('add_reply', post_id=post.id, comment_id=comment.id) }}">
+                    <div class="form-group">
+                        <label>Ваш ответ:</label>
+                        <textarea name="reply_text" rows="2" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit-small">Отправить ответ</button>
+                </form>
+            </div>
+
+            <!-- Ответы на комментарий -->
+            {% if comment.replies %}
+            <div class="replies">
+                {% for reply in comment.replies %}
+                <div class="reply">
+                    <div class="reply-header">
+                        <strong class="reply-author">{{ reply.author }}</strong>
+                        <span class="reply-date">{{ reply.date.strftime('%d.%m.%Y %H:%M') }}</span>
+                    </div>
+                    <div class="reply-text">
+                        {{ reply.text }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="no-comments">Пока нет комментариев. Будьте первым!</p>
+        {% endfor %}
+    </div>
+</article>
+
+<script>
+function showReplyForm(commentId) {
+    const form = document.getElementById('reply-form-' + commentId);
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+    } else {
+        form.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
