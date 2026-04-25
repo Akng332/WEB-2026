@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - Мой Блог{% endblock %}
+
+{% block content %}
+<article class="post-full">
+    <h1 class="post-title">{{ post.title }}</h1>
+
+    <div class="post-meta">
+        <span class="post-author">Автор: {{ post.author }}</span>
+        <span class="post-date">Дата публикации: {{ post.date.strftime('%d.%m.%Y %H:%M') if post.date else '' }}</span>
+    </div>
+
+    {% if post.image_id %}
+    <div class="post-image">
+        <img src="{{ url_for('static', filename='images/' + post.image_id) }}" alt="{{ post.title }}">
+    </div>
+    {% endif %}
+
+    <div class="post-content">
+        <p>{{ post.text }}</p>
+    </div>
+
+    <!-- Форма для комментариев -->
+    <div class="comment-form-section">
+        <h3>Оставьте комментарий</h3>
+        <form method="POST" action="{{ url_for('post', index=post.id) }}" class="comment-form">
+            <div class="form-group">
+                <label for="comment_text">Ваш комментарий:</label>
+                <textarea id="comment_text" name="comment_text" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn-submit">Отправить</button>
+        </form>
+    </div>
+
+    <!-- Комментарии -->
+    <div class="comments-section">
+        <h3>Комментарии ({{ post.comments|length }})</h3>
+
+        {% for comment in post.comments %}
+        <div class="comment">
+            <div class="comment-header">
+                <strong class="comment-author">{{ comment.author }}</strong>
+            </div>
+            <div class="comment-text">
+                {{ comment.text }}
+            </div>
+
+            <!-- Ответы на комментарий -->
+            {% if comment.replies %}
+            <div class="replies">
+                {% for reply in comment.replies %}
+                <div class="reply">
+                    <div class="reply-header">
+                        <strong class="reply-author">{{ reply.author }}</strong>
+                    </div>
+                    <div class="reply-text">
+                        {{ reply.text }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="no-comments">Пока нет комментариев. Будьте первым!</p>
+        {% endfor %}
+    </div>
+</article>
+{% endblock %}

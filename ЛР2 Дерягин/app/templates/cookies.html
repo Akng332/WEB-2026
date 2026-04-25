@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Cookie</h2>
+<div class="alert alert-info">
+    Cookie "user_preference" было
+    {% if request.cookies.get('user_preference') %}
+        установлено
+    {% else %}
+        удалено
+    {% endif %}.
+</div>
+<p>Обновите страницу, чтобы увидеть изменение статуса.</p>
+{% endblock %}
