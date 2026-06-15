@@ -1,0 +1,150 @@
+@"
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} - Электронная библиотека{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        {% if book.cover %}
+        <img src="{{ url_for('static', filename='uploads/covers/' + book.cover.filename) }}"
+             class="img-fluid rounded shadow" alt="{{ book.title }}">
+        {% else %}
+        <div class="bg-secondary text-white p-5 text-center rounded">
+            📖 Нет обложки
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-8">
+        <h1>{{ book.title }}</h1>
+        <p class="text-muted">
+            <strong>{{ book.author }}</strong> • {{ book.year }} • {{ book.pages }} стр.
+        </p>
+        <p><strong>Издательство:</strong> {{ book.publisher }}</p>
+        <p><strong>Жанры:</strong>
+            {% for genre in book.genres %}
+                <span class="badge bg-secondary">{{ genre.name }}</span>
+            {% endfor %}
+        </p>
+        <p><strong>Рейтинг:</strong> ⭐ {{ "%.1f"|format(book.avg_rating) }} ({{ book.reviews|length }} оценок)</p>
+
+        <div class="mt-4">
+            <h5>Описание:</h5>
+            <div class="border p-3 rounded">
+                {{ book.description|safe }}
+            </div>
+        </div>
+
+        <div class="mt-4">
+            {% if current_user.is_authenticated and current_user.role.name == 'admin' %}
+            <a href="{{ url_for('books.edit_book', book_id=book.id) }}" class="btn btn-warning">✏️ Редактировать</a>
+            <button onclick="deleteBook({{ book.id }}, '{{ book.title }}')" class="btn btn-danger">🗑 Удалить</button>
+            {% endif %}
+
+            {% if current_user.is_authenticated and current_user.role.name == 'user' %}
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addToCollectionModal">
+                📚 Добавить в подборку
+            </button>
+            {% endif %}
+
+            <a href="{{ url_for('books.index') }}" class="btn btn-secondary">← Назад</a>
+        </div>
+    </div>
+</div>
+
+<!-- Рецензии -->
+<div class="row mt-5">
+    <div class="col-12">
+        <h3>Рецензии ({{ book.reviews|length }})</h3>
+        {% if current_user.is_authenticated and current_user.role.name in ['user', 'moderator', 'admin'] %}
+            {% set user_review = book.reviews|selectattr('user_id', 'equalto', current_user.id)|first %}
+            {% if not user_review %}
+            <a href="{{ url_for('books.add_review', book_id=book.id) }}" class="btn btn-primary mb-3">✍️ Написать рецензию</a>
+            {% else %}
+            <div class="alert alert-info">Вы уже оставили рецензию на эту книгу</div>
+            {% endif %}
+        {% endif %}
+
+        {% for review in book.reviews %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <h6>{{ review.user.full_name }}</h6>
+                    <span>⭐ {{ review.rating }}</span>
+                </div>
+                <p class="mt-2">{{ review.text|safe }}</p>
+                <small class="text-muted">{{ review.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted">Пока нет рецензий. Будьте первым!</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Модальное окно -->
+<div class="modal fade" id="addToCollectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить в подборку</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <select id="collectionSelect" class="form-select">
+                    <option value="">Выберите подборку</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="addToCollection()">Добавить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteBook(bookId, title) {
+    if (confirm(`Вы уверены, что хотите удалить книгу "${title}"?`)) {
+        fetch(`/book/delete/${bookId}`, {method: 'POST'})
+        .then(() => window.location.href = '/');
+    }
+}
+
+// Загружаем подборки при открытии модального окна
+document.getElementById('addToCollectionModal').addEventListener('show.bs.modal', function() {
+    fetch('/collections/api/my-collections')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('collectionSelect');
+            select.innerHTML = '<option value="">Выберите подборку</option>';
+            data.forEach(collection => {
+                const option = document.createElement('option');
+                option.value = collection.id;
+                option.textContent = collection.name;
+                select.appendChild(option);
+            });
+        });
+});
+
+function addToCollection() {
+    const collectionId = document.getElementById('collectionSelect').value;
+    if (!collectionId) {
+        alert('Выберите подборку');
+        return;
+    }
+
+    fetch(`/collections/${collectionId}/add-book/{{ book.id }}`, {method: 'POST'})
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Ошибка: ' + data.error);
+        }
+    });
+}
+</script>
+{% endblock %}
+"@ | Out-File -FilePath app\templates\books\detail.html -Encoding utf8

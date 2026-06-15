@@ -1,0 +1,92 @@
+@"
+{% extends "base.html" %}
+
+{% block title %}Мои подборки{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📚 Мои подборки</h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCollectionModal">
+        + Новая подборка
+    </button>
+</div>
+
+{% if collections %}
+<div class="row">
+    {% for collection in collections %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ collection.name }}</h5>
+                <p class="card-text">
+                    Книг в подборке: <strong>{{ collection.books|length }}</strong>
+                </p>
+                <p class="text-muted small">Создана: {{ collection.created_at.strftime('%d.%m.%Y') }}</p>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('collections.view_collection', collection_id=collection.id) }}"
+                   class="btn btn-outline-primary">Просмотр</a>
+                <button onclick="deleteCollection({{ collection.id }}, '{{ collection.name }}')"
+                        class="btn btn-outline-danger">Удалить</button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    У вас пока нет подборок. Нажмите "Новая подборка", чтобы создать первую!
+</div>
+{% endif %}
+
+<!-- Модальное окно -->
+<div class="modal fade" id="addCollectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Новая подборка</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control" id="collectionName" placeholder="Название подборки">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="createCollection()">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function createCollection() {
+    const name = document.getElementById('collectionName').value.trim();
+    if (!name) {
+        alert('Введите название подборки');
+        return;
+    }
+
+    fetch('/collections/create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: name})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Ошибка: ' + data.error);
+        }
+    });
+}
+
+function deleteCollection(id, name) {
+    if (confirm(`Вы уверены, что хотите удалить подборку "${name}"?`)) {
+        fetch(`/collections/delete/${id}`, {method: 'POST'})
+        .then(() => location.reload());
+    }
+}
+</script>
+{% endblock %}
+"@ | Out-File -FilePath app\templates\collections\my_collections.html -Encoding utf8
